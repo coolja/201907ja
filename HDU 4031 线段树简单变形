@@ -1,0 +1,112 @@
+/*
+
+*/
+#include<iostream>
+#include<cstdio>
+#include<cstring>
+#include<vector>
+#include<algorithm>
+#define lson rt<<1
+#define rson rt<<1|1
+#define M 20005<<2
+using namespace std;
+int o1,o2,T,N,Q,t,k;//T: 样例个数 N:城墙长度 Q:操作次数 t:防御时间长度 k:第k秒攻击 
+int wall[M],lazy[M],atk[M][2],pre[M],def[M];
+void pushdown(int rt,int llen,int rlen)
+{
+	lazy[lson]+=lazy[rt];
+	lazy[rson]+=lazy[rt];
+	wall[lson]+=llen*lazy[rt];
+	wall[rson]+=rlen*lazy[rt];
+	lazy[rt]=0;	
+}
+void update(int L,int R,int l,int r,int rt)
+{
+	if(L<=l&&R>=r)
+	{
+		lazy[rt]++;			//遇到攻击，则在相应被攻击的墙的位置的数++ 
+		wall[rt]+=r-l+1;
+		return ;	
+	}
+	int m=(l+r)/2;
+	if(lazy[rt])
+		pushdown(rt,m-l+1,r-m);
+	if(L<=m)
+		update(L,R,l,m,lson);
+	if(R>=m+1) 
+		update(L,R,m+1,r,rson);
+	wall[rt]=wall[lson]+wall[rson];
+}
+
+int query(int a,int l,int r,int rt)
+{
+	if(l==r)
+	{
+		return wall[rt];
+	}	
+	int m=(l+r)/2;
+	if(lazy[rt])
+	{
+		pushdown(rt,m-l+1,r-m);
+	}
+		
+	if(a<=m)
+		return query(a,l,m,lson);
+	else
+		return query(a,m+1,r,rson);
+}
+
+int main()
+{
+	scanf("%d",&T);
+	char order[10];
+	for(int i=1;i<=T;i++)
+	{
+		int time=0;
+		memset(wall,0,sizeof(wall));
+		memset(atk,0,sizeof(atk));
+		memset(def,0,sizeof(def));
+		memset(lazy,0,sizeof(lazy));
+		
+		printf("Case %d:\n",i);
+		scanf("%d %d %d",&N,&Q,&t);		//盾牌冷却时间为t-1
+		for(int i=1;i<=N;i++)
+			pre[i]=1;
+		
+		while(Q--)
+		{
+			scanf("%s",&order);
+			if(order[0]=='A')
+			{
+				scanf("%d %d",&o1,&o2);
+				atk[++time][0]=o1;
+				atk[time][1]=o2; 
+				update(o1,o2,1,N,1);
+			}
+			else
+			{
+				scanf("%d",&o1);
+				if(t==0)
+				{
+					printf("0\n");
+					continue;
+				}
+				int tmp=query(o1,1,N,1);
+				for(int j=pre[o1];j<=time;j++)
+				{
+					if(atk[j][0]<=o1&&atk[j][1]>=o1)
+					{
+						def[o1]++;
+						pre[o1]=j+t;
+						j+=t-1;
+					}
+				}
+				printf("%d\n",tmp-def[o1]);				//被攻击次数=总被攻击次数-防御成功次数 
+			}
+						
+		}
+		
+	} 
+	return 0;
+	
+}
