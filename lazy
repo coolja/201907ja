@@ -1,0 +1,128 @@
+/*
+You have N integers, A1, A2, ... , AN. You need to deal with two kinds of operations. 
+One type of operation is to add some given number to each number in a given interval. 
+The other is to ask for the sum of numbers in a given interval.
+
+Input
+The first line contains two numbers N and Q. 1 ≤ N,Q ≤ 100000.
+The second line contains N numbers, the initial values of A1, A2, ... , AN. -1000000000 ≤ Ai ≤ 1000000000.
+Each of the next Q lines represents an operation.
+"C a b c" means adding c to each of Aa, Aa+1, ... , Ab. -10000 ≤ c ≤ 10000.
+"Q a b" means querying the sum of Aa, Aa+1, ... , Ab.
+
+Output
+You need to answer all Q commands in order. One answer in a line.
+*/ 
+#include<iostream>
+#include<cstdio>
+#include<cstring>
+#define lson rt<<1
+#define rson rt<<1|1
+#define M 100005<<2
+using namespace std;
+int n,q,a,b,c;
+long long tree[M],lazy[M];
+
+void build(int l,int r,int rt)
+{
+	if(l==r)
+	{
+		scanf("%lld",&tree[rt]);
+		return ;
+	}
+	int m=(l+r)/2;
+	build(l,m,lson);
+	build(m+1,r,rson);
+	tree[rt]=tree[lson]+tree[rson];
+}
+/*
+进入该函数则意味着tree[rt]的左右孩子的数据需要被用到了，
+而此时该节点左右孩子的更新数据被他们的爸爸扣住了
+该函数的作用就是更新未被更新且需要被用到的数据，
+延迟更新数据的目的是节省时间 
+*/ 
+void pushdown(int rt,int llen,int rlen)//llen:左孩子的区间长度 rlen:右孩子的区间长度 
+{
+	lazy[lson]+=lazy[rt];
+	lazy[rson]+=lazy[rt];	//lazy[rt]将被延迟更新的值传承给他的孩子们 
+	tree[lson]+=llen*lazy[rt];//接收到被延迟的更新数据后就马上进行数据更新 
+	tree[rson]+=rlen*lazy[rt];
+	lazy[rt]=0;
+}
+
+long long add(int L,int R,int l,int r,int rt)
+{
+	long long sum=0;
+	int m=(l+r)/2;	
+	if(l>=L&&r<=R)
+	return tree[rt];
+	
+	if(lazy[rt])
+		pushdown(rt,m-l+1,r-m);
+	if(L<=m)
+		sum+=add(L,R,l,m,lson);
+	if(R>=m+1)
+		sum+=add(L,R,m+1,r,rson);	
+	return sum;
+}
+void update(int L,int R,long long d,int l,int r,int rt)
+{	
+	int m=(l+r)/2;
+	if(l>=L&&r<=R)
+	{
+		lazy[rt]+=d;		//将被延迟更新的数据放入lazy数组中，下标即tree的下标 
+		tree[rt]+=(r-l+1)*d;//同时更新符合条件的tree 
+		return ;
+	}
+	//若lazy[rt]非0，则意味着tree[rt]的左右孩子有未被更新的数据
+	//而此时需要用到tree[rt]左右孩子的数据，则必须进行数据更新 
+	if(lazy[rt])
+		pushdown(rt,m-l+1,r-m);
+	if(L<=m)
+		update(L,R,d,l,m,lson);
+	if(R>=m+1)
+		update(L,R,d,m+1,r,rson);
+	tree[rt]=tree[lson]+tree[rson];
+}
+
+int main()
+{
+	memset(lazy,0,sizeof lazy);
+	memset(tree,0,sizeof tree);
+	
+	char ord[2];
+	int o1,o2;
+	long long o3;
+	scanf("%d %d",&n,&q);
+	build(1,n,1);
+	while(q--)
+	{		
+		scanf("%s",&ord);
+		if(ord=="Q")
+		{
+			scanf("%d %d",&o1,&o2);
+			printf("%lld\n",add(o1,o2,1,n,1));
+		}
+		if(ord=="C")
+		{
+			scanf("%d %d %lld",&o1,&o2,&o3);
+			update(o1,o2,o3,1,n,1);
+		}
+	}
+	return 0;
+}
+/*
+Sample Input
+10 5
+1 2 3 4 5 6 7 8 9 10
+Q 4 4
+Q 1 10
+Q 2 4
+C 3 6 3
+Q 2 4
+Sample Output
+4
+55
+9
+15
+*/ 
